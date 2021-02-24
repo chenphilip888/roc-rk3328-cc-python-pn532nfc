@@ -1,0 +1,138 @@
+nfc experiments on the Firefly ROC-RK3328-CC board.
+
+nfc host controller card: Adafruit PN532 NFC Shield
+
+The following 8 tests are included:
+1. iso14443a_uid  ( read nfc card's uid )
+2. memdump        ( dump all memory in the nfc cards )
+3. readMifare     ( write read memory in the nfc cards )
+4. ntag21x_rw     ( write read mifareultralight )
+5. memerase       ( erase all memory in the nfc cards )
+6. formatndef     ( change mifareclassic to mifareclassic_ndef )
+7. updatendef     ( write read mifareclassic_ndef )
+8. ndeftoclassic  ( change mifareclassic_ndef to mifareclassic )
+
+-------------------------------------------------------------------
+
+To compile and flash to sd card:
+
+cd ~/roc-rk3328-cc-python-pn532nfc
+Download OS from https://www.armbian.com/renegade/
+select Armbian Buster.
+unxz Armbian_21.02.1_Renegade_buster_current_5.10.12.img.xz
+Use balenaEtcher to burn img to sd card.
+eject sd card.
+Plugin sd card to PC.
+generate spi.dtbo
+dtc -O dtb -o spi.dtbo -b 0 -@ spi.dts
+fdtdump spi.dtbo
+sudo mkdir /media/$USER/4a32442e-fd4d-436c-8a1f-ac8889967b3e/boot/overlay-user
+sudo cp spi.dtbo /media/$USER/4a32442e-fd4d-436c-8a1f-ac8889967b3e/boot/overlay-user
+sudo cp armbianEnv.txt /media/$USER/4a32442e-fd4d-436c-8a1f-ac8889967b3e/boot
+sync
+sudo umount /media/$USER/4a32442e-fd4d-436c-8a1f-ac8889967b3e
+eject sd card.
+Plugin the sd card to Firefly ROC-RK3328-CC board.
+Plugin ethernet cable to Firefly ROC-RK3328-CC board
+Connect ROC-RK3328-CC gpio Pin 36 to serial USB cable TX.
+Connect ROC-RK3328-CC gpio pin 38 to serial USB cable RX. 
+Connect ROC-RK3328-CC gpio pin 39 to serial USB cable ground. 
+Type "script ~/outputfile.txt" on PC.
+Plugin serial USB cable to PC.
+Type "sudo screen /dev/ttyUSB0 1500000" on PC.
+Power on Firefly ROC-RK3328-CC board.
+set user, password, locale and time zone.
+sudo dmesg -n 1
+sudo vi /etc/rc.local ( add sudo dmesg -n 1 ).
+date
+sudo ifconfig
+sudo shutdown -h now
+Power off the Firefly ROC-RK3328-CC board.
+Unplug serial USB cable from PC.
+Type "exit" on PC.
+Power on Firefly ROC-RK3328-CC board.
+ssh firefly@192.168.86.xxx
+vi nosleep.sh ( add following line to disable sleep feature ).
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+./nosleep.sh
+date
+sudo ifconfig
+lsb_release -a
+sudo apt-get update
+sudo apt-get upgrade
+sync
+sudo reboot
+sudo apt-get install python-dev python-pip python-setuptools python3-dev python3-pip python3-setuptools dnsutils apache2 vsftpd ftp build-essential git libssl-dev nmap net-tools dkms libncurses5-dev libncursesw5-dev i2c-tools
+sudo pip3 install python-periphery
+sudo pip3 install smbus2
+sudo cat /proc/device-tree/spi@ff190000/status  ( spi0.0 )
+sudo cat /proc/device-tree/i2c@ff160000/status  ( i2c-1 )
+sudo i2cdetect -y 1
+
+Datasheet of pn532 in https://www.nxp.com/docs/en/nxp/data-sheets/PN532_C1.pdf
+application: https://www.nxp.com/docs/en/user-guide/141520.pdf
+https://raspberrypi.stackexchange.com/questions/109773/how-can-rpi-spi-python-read-the-mfrc522-nfc-module
+NFC info see https://www.nxp.com/docs/en/application-note/AN1305.pdf
+             https://www.nxp.com/docs/en/application-note/AN1304.pdf
+             https://www.nxp.com/docs/en/data-sheet/MF0ICU2.pdf
+examples: see https://github.com/nfc-tools/libfreefare/
+Tutorial: see https://learn.adafruit.com/adafruit-pn532-rfid-nfc/mifare
+
+-------------------------------------------------------------------------
+
+Here are the summary of the tests: ( see rk3328_gpio.png )
+
+These tests used Adafruit PN532 NFC Shield.
+To use Adafruit PN532 NFC Shield see https://learn.adafruit.com/adafruit-pn532-rfid-nfc
+
+-------------------------------------------------------------------------
+
+Here are the procedure to test the above 8 tests:
+
+For spi:
+Connect gpio pin 19 to pn532 MOSI.
+Connect gpio pin 24 to pn532 SSEL.
+Connect gpio pin 21 to pn532 MISO.
+Connect gpio pin 23 to pn532 SCK.
+Connect gpio pin 2 to pn532 5V.
+Connect gpio pin 9 to pn532 ground.
+
+For i2c:
+Connect gpio pin 27 to pn532 SDA
+Connect gpio pin 28 to pn532 SCL
+Connect gpio pin 2 to pn532 5V.
+Connect gpio pin 9 to pn532 ground.
+
+git clone https://github.com/chenphilip888/roc-rk3328-cc-python-pn532nfc.git
+cd ~/roc-rk3328-cc-python-pn532nfc
+For spi:
+change *.py file to use SPI ( from pn532_spi import * )
+For i2c:
+change *.py file to use I2C ( from pn532_i2c import * )
+
+sudo python3 iso14443a_uid.py   ( for mifareclassic and mifareultralight )
+sudo python3 memdump.py         ( for mifareclassic and mifareultralight )
+sudo python3 readMifare.py      ( for mifareclassic and mifareultralight )
+sudo python3 memdump.py         ( for mifareclassic and mifareultralight )
+sudo python3 ntag21x_rw.py      ( for mifareultralight )
+sudo python3 memdump.py         ( for mifareultralight )
+sudo python3 memerase.py        ( for mifareclassic and mifareultralight )
+sudo python3 memdump.py         ( for mifareclassic and mifareultralight )
+sudo python3 formatndef.py      ( for mifareclassic )
+sudo python3 memdump.py         ( for mifareclassic )
+sudo python3 updatendef.py      ( for mifareclassic )
+sudo python3 memdump.py         ( for mifareclassic )
+sudo python3 memerase.py        ( for mifareclassic )
+sudo python3 memdump.py         ( for mifareclassic )
+sudo python3 ndeftoclassic.py   ( for mifareclassic )
+sudo python3 memdump.py         ( for mifareclassic )
+sudo python3 readMifare.py      ( for mifareclassic )
+sudo python3 memdump.py         ( for mifareclassic )
+sudo python3 memerase.py        ( for mifareclassic )
+sudo python3 memdump.py         ( for mifareclassic )
+
+When done all tests:
+sudo shutdown -h now
+Power off Firefly ROC-RK3328-CC board.
+
+-----------------------------------------------------------------------------
